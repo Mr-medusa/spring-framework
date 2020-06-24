@@ -16,16 +16,16 @@
 
 package org.springframework.core.convert.support;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.core.convert.converter.ConditionalGenericConverter;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Converts an array to another array. First adapts the source array to a List,
@@ -62,11 +62,11 @@ final class ArrayToArrayConverter implements ConditionalGenericConverter {
 	@Override
 	@Nullable
 	public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+		// 判断是那种转换服务
 		if (this.conversionService instanceof GenericConversionService) {
 			TypeDescriptor targetElement = targetType.getElementTypeDescriptor();
-			if (targetElement != null &&
-					((GenericConversionService) this.conversionService).canBypassConvert(
-							sourceType.getElementTypeDescriptor(), targetElement)) {
+			// 若能绕过转换则直接返回source
+			if (targetElement != null && ((GenericConversionService) this.conversionService).canBypassConvert(sourceType.getElementTypeDescriptor(), targetElement)) {
 				return source;
 			}
 		}

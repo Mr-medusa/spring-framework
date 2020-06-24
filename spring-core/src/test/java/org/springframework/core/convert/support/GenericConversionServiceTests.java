@@ -281,14 +281,21 @@ public class GenericConversionServiceTests {
 		assertThat(converted).isEqualTo("RESULT");
 	}
 
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      数组接口综合使用            ++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Test
 	public void testInterfaceArrayToStringArray() {
 		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
 		conversionService.addConverter(new ArrayToArrayConverter(conversionService));
-		String[] converted = conversionService.convert(new MyInterface[]{new MyInterfaceImplementer()}, String[].class);
+		MyInterface[] myInterfaces = {new MyInterfaceImplementer()};
+		String[] converted = conversionService.convert(myInterfaces , String[].class);
 		assertThat(converted[0]).isEqualTo("RESULT");
 	}
 
+
+	// MY_TODO
 	@Test
 	public void testObjectArrayToStringArray() {
 		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
