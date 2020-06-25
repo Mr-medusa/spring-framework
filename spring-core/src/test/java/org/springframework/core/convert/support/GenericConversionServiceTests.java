@@ -705,6 +705,66 @@ public class GenericConversionServiceTests {
 	}
 
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      内建的转换器测试            +++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	static class Foo{
+//		public Bar toBar(){
+//			System.out.println("toBar");
+//			return new Bar();
+//		}
+		public static Bar findBar(MyEntity myEntity){
+			System.out.println("findBar(Class<Bar> bar)");
+			return new Bar();
+		}
+
+	}
+	static class Bar{
+		//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		//+++++++++++++++++++++++++++++++++++++      测试Obj to Obj          +++++++++++++++++++++++++++++++++++++++++++
+		//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		public Bar(){}
+//		public Bar(Foo foo) {
+//			System.out.println("Bar(Foo foo)");
+//		}
+		//		public static Bar valueOf(Foo foo){
+//			System.out.println("valueOf(Foo foo)");
+//			return new Bar();
+//		}
+//		public static Bar of(Foo foo){
+//			System.out.println("of(Foo foo)");
+//			return new Bar();
+//		}
+//		public static Bar from(Foo foo){
+//			System.out.println("from(Foo foo)");
+//			return new Bar();
+//		}
+
+		//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		//+++++++++++++++++++++++++++++++++++++      测试IdToEntity            +++++++++++++++++++++++++++++++++++++
+		//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		public static Bar findBar(MyEntity myEntity){
+			System.out.println("findBar(Class<Bar> bar)");
+			return new Bar();
+		}
+
+	}
+	static class MyEntity{
+		public String id;
+		public static MyEntity of(Foo foo){
+			System.out.println("MyEntity of(Foo foo)");
+			return new MyEntity();
+		}
+	}
+
+	@Test
+	public void buildInConversions(){
+		conversionService.addConverter(new ObjectToObjectConverter());
+		conversionService.addConverter(new IdToEntityConverter(conversionService));
+		Object convert =  conversionService.convert(new Foo(), Bar.class);
+		System.out.println(convert);
+	}
+
 	@ExampleAnnotation(active = true)
 	public String annotatedString;
 

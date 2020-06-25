@@ -16,14 +16,14 @@
 
 package org.springframework.core.convert.support;
 
+import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.converter.ConverterRegistry;
+import org.springframework.lang.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.Currency;
 import java.util.Locale;
 import java.util.UUID;
-
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.converter.ConverterRegistry;
-import org.springframework.lang.Nullable;
 
 /**
  * A specialization of {@link GenericConversionService} configured by default
@@ -93,7 +93,17 @@ public class DefaultConversionService extends GenericConversionService {
 		converterRegistry.addConverter(new ZoneIdToTimeZoneConverter());
 		converterRegistry.addConverter(new ZonedDateTimeToCalendarConverter());
 
+		/**
+		 * 1.如果有的话在源目标对象上调用非静态的to[targetType.simpleName]()并返回等价的目标对象,例如org.example.Bar Foo#toBar()
+		 * 2.否则在目标对象上调用静态的valueOf(sourceType)或是of(sourceType)或是from(sourceType)
+		 * 3.否则在目标方法上调用构造器 接受一个sourceType参数
+		 * 4.Otherwise throw a ConversionFailedException.
+		 */
 		converterRegistry.addConverter(new ObjectToObjectConverter());
+
+		/**
+		 * 在target#find[EntityName]([IdType])并返回期望的目标对象
+		 */
 		converterRegistry.addConverter(new IdToEntityConverter((ConversionService) converterRegistry));
 		converterRegistry.addConverter(new FallbackObjectToStringConverter());
 		converterRegistry.addConverter(new ObjectToOptionalConverter((ConversionService) converterRegistry));
