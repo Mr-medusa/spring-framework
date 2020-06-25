@@ -325,120 +325,6 @@ public class GenericConversionService implements ConfigurableConversionService {
 
 
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	//+++++++++++++++++++++++++++++++++++++      适配器            ++++++++++++++++++++++++++++++++++++++++++++++
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	/**
-	 * Adapts a {@link Converter} to a {@link GenericConverter}.
-	 */
-	@SuppressWarnings("unchecked")
-	private final class ConverterAdapter implements ConditionalGenericConverter {
-
-		private final Converter<Object, Object> converter;
-
-		private final ConvertiblePair typeInfo;
-
-		private final ResolvableType targetType;
-
-		public ConverterAdapter(Converter<?, ?> converter, ResolvableType sourceType, ResolvableType targetType) {
-			this.converter = (Converter<Object, Object>) converter;
-			this.typeInfo = new ConvertiblePair(sourceType.toClass(), targetType.toClass());
-			this.targetType = targetType;
-		}
-
-		@Override
-		public Set<ConvertiblePair> getConvertibleTypes() {
-			return Collections.singleton(this.typeInfo);
-		}
-
-		@Override
-		public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
-			// Check raw type first...
-			if (this.typeInfo.getTargetType() != targetType.getObjectType()) {
-				return false;
-			}
-			// Full check for complex generic type match required?
-			ResolvableType rt = targetType.getResolvableType();
-			// 不是类, 不是目标类子类,不能解析泛型参数返回false
-			if (!(rt.getType() instanceof Class) && !rt.isAssignableFrom(this.targetType) &&
-					!this.targetType.hasUnresolvableGenerics()) {
-				return false;
-			}
-			return !(this.converter instanceof ConditionalConverter) ||
-					((ConditionalConverter) this.converter).matches(sourceType, targetType);
-		}
-
-		@Override
-		@Nullable
-		public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
-			if (source == null) {
-				return convertNullSource(sourceType, targetType);
-			}
-			return this.converter.convert(source);
-		}
-
-		@Override
-		public String toString() {
-			return (this.typeInfo + " : " + this.converter);
-		}
-	}
-
-
-	/**
-	 * Adapts a {@link ConverterFactory} to a {@link GenericConverter}.
-	 */
-	@SuppressWarnings("unchecked")
-	private final class ConverterFactoryAdapter implements ConditionalGenericConverter {
-
-		private final ConverterFactory<Object, Object> converterFactory;
-
-		private final ConvertiblePair typeInfo;
-
-		public ConverterFactoryAdapter(ConverterFactory<?, ?> converterFactory, ConvertiblePair typeInfo) {
-			this.converterFactory = (ConverterFactory<Object, Object>) converterFactory;
-			this.typeInfo = typeInfo;
-		}
-
-		@Override
-		public Set<ConvertiblePair> getConvertibleTypes() {
-			return Collections.singleton(this.typeInfo);
-		}
-
-		/**
-		 * 转换工厂有两层匹配
-		 */
-		@Override
-		public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
-			boolean matches = true;
-			if (this.converterFactory instanceof ConditionalConverter) {
-				matches = ((ConditionalConverter) this.converterFactory).matches(sourceType, targetType);
-			}
-			if (matches) {
-				Converter<?, ?> converter = this.converterFactory.getConverter(targetType.getType());
-				if (converter instanceof ConditionalConverter) {
-					matches = ((ConditionalConverter) converter).matches(sourceType, targetType);
-				}
-			}
-			return matches;
-		}
-
-		@Override
-		@Nullable
-		public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
-			if (source == null) {
-				return convertNullSource(sourceType, targetType);
-			}
-			return this.converterFactory.getConverter(targetType.getObjectType()).convert(source);
-		}
-
-		@Override
-		public String toString() {
-			return (this.typeInfo + " : " + this.converterFactory);
-		}
-	}
-
-
-
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	//+++++++++++++++++++++++++++++++++++++      转换器容器类START            ++++++++++++++++++++++++++++++++++++++
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	/**
@@ -493,6 +379,7 @@ public class GenericConversionService implements ConfigurableConversionService {
 			List<Class<?>> targetCandidates = getClassHierarchy(targetType.getType());
 			for (Class<?> sourceCandidate : sourceCandidates) {
 				for (Class<?> targetCandidate : targetCandidates) {
+					// 遍历该类的上层接口,这就是为什么目标实现类也可以用接口匹配的原因
 					ConvertiblePair convertiblePair = new ConvertiblePair(sourceCandidate, targetCandidate);
 					GenericConverter converter = getRegisteredConverter(sourceType, targetType, convertiblePair);
 					if (converter != null) {
@@ -606,7 +493,7 @@ public class GenericConversionService implements ConfigurableConversionService {
 		private final LinkedList<GenericConverter> converters = new LinkedList<>();
 
 		/**
-		 * 后添加的放到第一个
+		 * 后添加的放到第一个,只有当第一个不满足条件时才继续看第二个
 		 */
 		public void add(GenericConverter converter) {
 			this.converters.addFirst(converter);
@@ -628,12 +515,125 @@ public class GenericConversionService implements ConfigurableConversionService {
 			return StringUtils.collectionToCommaDelimitedString(this.converters);
 		}
 	}
+
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      适配器            ++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	/**
+	 * Adapts a {@link Converter} to a {@link GenericConverter}.
+	 */
+	@SuppressWarnings("unchecked")
+	private final class ConverterAdapter implements ConditionalGenericConverter {
+
+		private final Converter<Object, Object> converter;
+
+		private final ConvertiblePair typeInfo;
+
+		private final ResolvableType targetType;
+
+		public ConverterAdapter(Converter<?, ?> converter, ResolvableType sourceType, ResolvableType targetType) {
+			this.converter = (Converter<Object, Object>) converter;
+			this.typeInfo = new ConvertiblePair(sourceType.toClass(), targetType.toClass());
+			this.targetType = targetType;
+		}
+
+		@Override
+		public Set<ConvertiblePair> getConvertibleTypes() {
+			return Collections.singleton(this.typeInfo);
+		}
+
+		@Override
+		public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
+			// Check raw type first...
+			if (this.typeInfo.getTargetType() != targetType.getObjectType()) {
+				return false;
+			}
+			// Full check for complex generic type match required?
+			ResolvableType rt = targetType.getResolvableType();
+			// 检查目标类 -> 若不是类, 不是目标类子类,不能解析泛型参数返回false
+			if (!(rt.getType() instanceof Class) && !rt.isAssignableFrom(this.targetType) &&
+					!this.targetType.hasUnresolvableGenerics()) {
+				return false;
+			}
+			return !(this.converter instanceof ConditionalConverter) ||
+					((ConditionalConverter) this.converter).matches(sourceType, targetType);
+		}
+
+		@Override
+		@Nullable
+		public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+			if (source == null) {
+				return convertNullSource(sourceType, targetType);
+			}
+			return this.converter.convert(source);
+		}
+
+		@Override
+		public String toString() {
+			return (this.typeInfo + " : " + this.converter);
+		}
+	}
+
+
+	/**
+	 * Adapts a {@link ConverterFactory} to a {@link GenericConverter}.
+	 */
+	@SuppressWarnings("unchecked")
+	private final class ConverterFactoryAdapter implements ConditionalGenericConverter {
+
+		private final ConverterFactory<Object, Object> converterFactory;
+
+		private final ConvertiblePair typeInfo;
+
+		public ConverterFactoryAdapter(ConverterFactory<?, ?> converterFactory, ConvertiblePair typeInfo) {
+			this.converterFactory = (ConverterFactory<Object, Object>) converterFactory;
+			this.typeInfo = typeInfo;
+		}
+
+		@Override
+		public Set<ConvertiblePair> getConvertibleTypes() {
+			return Collections.singleton(this.typeInfo);
+		}
+
+		/**
+		 * 转换工厂有两层匹配
+		 */
+		@Override
+		public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
+			boolean matches = true;
+			if (this.converterFactory instanceof ConditionalConverter) {
+				matches = ((ConditionalConverter) this.converterFactory).matches(sourceType, targetType);
+			}
+			if (matches) {
+				// 工厂的话还要多走这一步验证工厂实例的getConverter
+				Converter<?, ?> converter = this.converterFactory.getConverter(targetType.getType());
+				if (converter instanceof ConditionalConverter) {
+					matches = ((ConditionalConverter) converter).matches(sourceType, targetType);
+				}
+			}
+			return matches;
+		}
+
+		@Override
+		@Nullable
+		public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+			if (source == null) {
+				return convertNullSource(sourceType, targetType);
+			}
+			return this.converterFactory.getConverter(targetType.getObjectType()).convert(source);
+		}
+
+		@Override
+		public String toString() {
+			return (this.typeInfo + " : " + this.converterFactory);
+		}
+	}
+
+
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	//+++++++++++++++++++++++++++++++++++++      转换容器类END              ++++++++++++++++++++++++++++++++++++++
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-
 
 	/**
 	 * Key for use with the converter cache.

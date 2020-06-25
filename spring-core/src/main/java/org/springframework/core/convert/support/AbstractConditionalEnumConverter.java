@@ -40,6 +40,7 @@ abstract class AbstractConditionalEnumConverter implements ConditionalConverter 
 	@Override
 	public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
 		for (Class<?> interfaceType : ClassUtils.getAllInterfacesForClassAsSet(sourceType.getType())) {
+			// 先看看是否有其它的转换器能够转换
 			if (this.conversionService.canConvert(TypeDescriptor.valueOf(interfaceType), targetType)) {
 				return false;
 			}

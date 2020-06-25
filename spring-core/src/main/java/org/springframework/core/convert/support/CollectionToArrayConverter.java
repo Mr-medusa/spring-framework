@@ -73,7 +73,7 @@ final class CollectionToArrayConverter implements ConditionalGenericConverter {
 		int i = 0;
 		for (Object sourceElement : sourceCollection) {
 			Object targetElement = this.conversionService.convert(sourceElement,
-					// 通过sourceElement窄化源类型
+					// 过得element并指定它的类型
 					sourceType.elementTypeDescriptor(sourceElement), targetElementType);
 			Array.set(array, i++, targetElement);
 		}

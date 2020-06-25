@@ -98,7 +98,7 @@ public class GenericConversionServiceTests {
 
 			@Override
 			public Number convert(String source) {
-				return NumberUtils.parseNumber(source,Number.class);
+				return NumberUtils.parseNumber(source, Number.class);
 			}
 		});
 		conversionService.addConverterFactory(new StringToNumberConverterFactory());
@@ -267,65 +267,6 @@ public class GenericConversionServiceTests {
 		assertThat(converted).isSameAs(raw);
 	}
 
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	//+++++++++++++++++++++++++++++++++++++      添加一些转换器测试            +++++++++++++++++++++++++++++++++++
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	/**
-	 * 这就是为什么转换器Converter<? super S,...>的原因了,我们想要实现了该接口的类也能得到转换。
-	 */
-	@Test
-	public void testInterfaceToString() {
-		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
-		conversionService.addConverter(new ObjectToStringConverter());
-		Object converted = conversionService.convert(new MyInterfaceImplementer(), String.class);
-		assertThat(converted).isEqualTo("RESULT");
-	}
-
-
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	//+++++++++++++++++++++++++++++++++++++      数组接口综合使用            ++++++++++++++++++++++++++++++++++++++
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	@Test
-	public void testInterfaceArrayToStringArray() {
-		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
-		conversionService.addConverter(new ArrayToArrayConverter(conversionService));
-		MyInterface[] myInterfaces = {new MyInterfaceImplementer()};
-		String[] converted = conversionService.convert(myInterfaces , String[].class);
-		assertThat(converted[0]).isEqualTo("RESULT");
-	}
-
-
-	// MY_TODO
-	@Test
-	public void testObjectArrayToStringArray() {
-		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
-		conversionService.addConverter(new ArrayToArrayConverter(conversionService));
-		String[] converted = conversionService.convert(new MyInterfaceImplementer[]{new MyInterfaceImplementer()}, String[].class);
-		assertThat(converted[0]).isEqualTo("RESULT");
-	}
-
-	@Test
-	public void testStringArrayToResourceArray() {
-		conversionService.addConverter(new MyStringArrayToResourceArrayConverter());
-		Resource[] converted = conversionService.convert(new String[]{"x1", "z3"}, Resource[].class);
-		List<String> descriptions = Arrays.stream(converted).map(Resource::getDescription).sorted(naturalOrder()).collect(toList());
-		assertThat(descriptions).isEqualTo(Arrays.asList("1", "3"));
-	}
-
-	@Test
-	public void testStringArrayToIntegerArray() {
-		conversionService.addConverter(new MyStringArrayToIntegerArrayConverter());
-		Integer[] converted = conversionService.convert(new String[]{"x1", "z3"}, Integer[].class);
-		assertThat(converted).isEqualTo(new Integer[]{1, 3});
-	}
-
-	@Test
-	public void testStringToIntegerArray() {
-		conversionService.addConverter(new MyStringToIntegerArrayConverter());
-		Integer[] converted = conversionService.convert("x1,z3", Integer[].class);
-		assertThat(converted).isEqualTo(new Integer[]{1, 3});
-	}
-
 	@Test
 	public void testWildcardMap() throws Exception {
 		Map<String, String> input = new LinkedHashMap<>();
@@ -347,6 +288,82 @@ public class GenericConversionServiceTests {
 		Object result = conversionService.convert(value, Object.class);
 		assertThat(result).isSameAs(value);
 	}
+
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      添加一些转换器测试            +++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	/**
+	 * 这就是为什么转换器Converter<? super S,...>的原因了,我们想要实现了该接口的类也能得到转换。
+	 */
+	@Test
+	public void testInterfaceToString() {
+		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
+		conversionService.addConverter(new ObjectToStringConverter());
+		Object converted = conversionService.convert(new MyInterfaceImplementer(), String.class);
+		assertThat(converted).isEqualTo("RESULT");
+	}
+
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      数组接口综合使用            ++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	/**
+	 * 接口数组转字符串数组
+	 */
+	@Test
+	public void testInterfaceArrayToStringArray() {
+		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
+		conversionService.addConverter(new ArrayToArrayConverter(conversionService));
+		String[] converted = conversionService.convert(new MyInterface[]{new MyInterfaceImplementer()}, String[].class);
+		assertThat(converted[0]).isEqualTo("RESULT");
+	}
+
+
+	/**
+	 * 对象数组转字符串数组
+	 * 本质同上 - 参考GenericConversionService.find(...)方法
+	 */
+	@Test
+	public void testObjectArrayToStringArray() {
+		conversionService.addConverter(new MyBaseInterfaceToStringConverter());
+		conversionService.addConverter(new ArrayToArrayConverter(conversionService));
+		String[] converted = conversionService.convert(new MyInterfaceImplementer[]{new MyInterfaceImplementer()}, String[].class);
+		assertThat(converted[0]).isEqualTo("RESULT");
+	}
+
+	/**
+	 * 字符串数组转资源数组
+	 */
+	@Test
+	public void testStringArrayToResourceArray() {
+		conversionService.addConverter(new MyStringArrayToResourceArrayConverter());
+		Resource[] converted = conversionService.convert(new String[]{"x1", "z3"}, Resource[].class);
+		List<String> descriptions = Arrays.stream(converted).map(Resource::getDescription).sorted(naturalOrder()).collect(toList());
+		assertThat(descriptions).isEqualTo(Arrays.asList("1", "3"));
+	}
+
+	/**
+	 * 字符串数组转整数数组
+	 */
+	@Test
+	public void testStringArrayToIntegerArray() {
+		conversionService.addConverter(new MyStringArrayToIntegerArrayConverter());
+		Integer[] converted = conversionService.convert(new String[]{"x1", "z3"}, Integer[].class);
+		assertThat(converted).isEqualTo(new Integer[]{1, 3});
+	}
+	/**
+	 * 字符串转整数数组
+	 */
+	@Test
+	public void testStringToIntegerArray() {
+		conversionService.addConverter(new MyStringToIntegerArrayConverter());
+		Integer[] converted = conversionService.convert("x1,z3", Integer[].class);
+		assertThat(converted).isEqualTo(new Integer[]{1, 3});
+	}
+
 
 	@Test
 	public void testIgnoreCopyConstructor() {
@@ -377,7 +394,7 @@ public class GenericConversionServiceTests {
 			}
 		}
 		watch.stop();
-		// System.out.println(watch.prettyPrint());
+//		 System.out.println(watch.prettyPrint());
 	}
 
 	@Test
@@ -403,6 +420,9 @@ public class GenericConversionServiceTests {
 		// System.out.println(watch.prettyPrint());
 	}
 
+	/**
+	 * 空集合转数组
+	 */
 	@Test
 	public void emptyListToArray() {
 		conversionService.addConverter(new CollectionToArrayConverter(conversionService));
@@ -433,6 +453,10 @@ public class GenericConversionServiceTests {
 		assertThat(conversionService.canConvert(String.class, Integer[].class)).isTrue();
 	}
 
+	/**
+	 * String 转集合
+	 * @throws Exception
+	 */
 	@Test
 	public void stringToCollectionCanConvert() throws Exception {
 		conversionService.addConverter(new StringToCollectionConverter(conversionService));
@@ -443,6 +467,9 @@ public class GenericConversionServiceTests {
 		assertThat(conversionService.canConvert(TypeDescriptor.valueOf(String.class), targetType)).isTrue();
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      无转换器测试            +++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Test
 	public void testConvertiblePairsInSet() {
 		Set<GenericConverter.ConvertiblePair> set = new HashSet<>();
@@ -478,6 +505,18 @@ public class GenericConversionServiceTests {
 				conversionService.canConvert(TypeDescriptor.valueOf(String.class), null));
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      无转换器测试            +++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      条件转换器测试            +++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	/**
+	 * 若同一ConvertiblePair有多个转换器,可以使用条件转换器更精确的控制是否可转化
+	 */
 	@Test
 	public void removeConvertible() {
 		conversionService.addConverter(new ColorConverter());
@@ -545,6 +584,9 @@ public class GenericConversionServiceTests {
 		assertThat(converted).isSameAs(byteArray);
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      枚举转换器            +++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Test
 	public void testEnumToStringConversion() {
 		conversionService.addConverter(new EnumToStringConverter(conversionService));
@@ -565,16 +607,19 @@ public class GenericConversionServiceTests {
 		assertThat(conversionService.convert(MyEnum.A, String.class)).isEqualTo("1");
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      字符串转枚举            +++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Test
 	public void testStringToEnumWithInterfaceConversion() {
-		conversionService.addConverterFactory(new StringToEnumConverterFactory());
+//		conversionService.addConverterFactory(new StringToEnumConverterFactory());
 		conversionService.addConverterFactory(new StringToMyEnumInterfaceConverterFactory());
 		assertThat(conversionService.convert("1", MyEnum.class)).isEqualTo(MyEnum.A);
 	}
 
 	@Test
 	public void testStringToEnumWithBaseInterfaceConversion() {
-		conversionService.addConverterFactory(new StringToEnumConverterFactory());
+//		conversionService.addConverterFactory(new StringToEnumConverterFactory());
 		conversionService.addConverterFactory(new StringToMyEnumBaseInterfaceConverterFactory());
 		assertThat(conversionService.convert("base1", MyEnum.class)).isEqualTo(MyEnum.A);
 	}
@@ -587,12 +632,16 @@ public class GenericConversionServiceTests {
 		conversionService.convert(source, sourceType, targetType);
 	}
 
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      协变            ++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Test
 	public void multipleCollectionTypesFromSameSourceType() throws Exception {
-		conversionService.addConverter(new MyStringToRawCollectionConverter());
-		conversionService.addConverter(new MyStringToGenericCollectionConverter());
-		conversionService.addConverter(new MyStringToStringCollectionConverter());
-		conversionService.addConverter(new MyStringToIntegerCollectionConverter());
+		conversionService.addConverter(new MyStringToRawCollectionConverter());			// 匹配无泛型集合
+		conversionService.addConverter(new MyStringToGenericCollectionConverter());		// 匹配泛型集合
+		conversionService.addConverter(new MyStringToStringCollectionConverter());		// 匹配String集合
+		conversionService.addConverter(new MyStringToIntegerCollectionConverter());		// 匹配整数集合
 
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("stringCollection")))).isEqualTo(Collections.singleton("testX"));
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("integerCollection")))).isEqualTo(Collections.singleton(4));
@@ -602,10 +651,15 @@ public class GenericConversionServiceTests {
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("stringCollection")))).isEqualTo(Collections.singleton("testX"));
 	}
 
+	/**
+	 * Converter<String, Collection<String>>
+	 *
+	 * ? 		可以协变为 String
+	 * 无泛型   可以协变为 String
+	 */
 	@Test
 	public void adaptedCollectionTypesFromSameSourceType() throws Exception {
 		conversionService.addConverter(new MyStringToStringCollectionConverter());
-
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("stringCollection")))).isEqualTo(Collections.singleton("testX"));
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("genericCollection")))).isEqualTo(Collections.singleton("testX"));
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("rawCollection")))).isEqualTo(Collections.singleton("testX"));
@@ -617,6 +671,10 @@ public class GenericConversionServiceTests {
 				conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("integerCollection"))));
 	}
 
+	/**
+	 * Converter<String, Collection<?>>
+	 *     都可以协变
+	 */
 	@Test
 	public void genericCollectionAsSource() throws Exception {
 		conversionService.addConverter(new MyStringToGenericCollectionConverter());
@@ -626,9 +684,14 @@ public class GenericConversionServiceTests {
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("rawCollection")))).isEqualTo(Collections.singleton("testX"));
 
 		// The following is unpleasant but a consequence of the generic collection converter above...
-		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("integerCollection")))).isEqualTo(Collections.singleton("testX"));
+		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class),
+				new TypeDescriptor(getClass().getField("integerCollection")))).isEqualTo(Collections.singleton("testX"));
 	}
 
+	/**
+	 * Converter<String, Collection>
+	 *     都可以协变
+	 */
 	@Test
 	public void rawCollectionAsSource() throws Exception {
 		conversionService.addConverter(new MyStringToRawCollectionConverter());
