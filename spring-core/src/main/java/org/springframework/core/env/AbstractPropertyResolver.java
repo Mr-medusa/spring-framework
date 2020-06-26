@@ -44,6 +44,9 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 	@Nullable
 	private volatile ConfigurableConversionService conversionService;
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      属性占位符解析器            +++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Nullable
 	private PropertyPlaceholderHelper nonStrictHelper;
 
@@ -52,10 +55,12 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 
 	private boolean ignoreUnresolvableNestedPlaceholders = false;
 
+	//			"${"
 	private String placeholderPrefix = SystemPropertyUtils.PLACEHOLDER_PREFIX;
-
+	//  		"}"
 	private String placeholderSuffix = SystemPropertyUtils.PLACEHOLDER_SUFFIX;
 
+	//			":"
 	@Nullable
 	private String valueSeparator = SystemPropertyUtils.VALUE_SEPARATOR;
 
@@ -140,6 +145,9 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 		}
 	}
 
+	/**
+	 * 确保必须的属性都被加入到了Environment里面
+	 */
 	@Override
 	public void validateRequiredProperties() {
 		MissingRequiredPropertiesException ex = new MissingRequiredPropertiesException();
@@ -153,11 +161,17 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 		}
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      获得属性关联的值            +++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Override
 	public boolean containsProperty(String key) {
 		return (getProperty(key) != null);
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      getProperty            +++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Override
 	@Nullable
 	public String getProperty(String key) {
@@ -175,6 +189,9 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 		T value = getProperty(key, targetType);
 		return (value != null ? value : defaultValue);
 	}
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      getProperty            +++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	@Override
 	public String getRequiredProperty(String key) throws IllegalStateException {
@@ -194,6 +211,10 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 		return value;
 	}
 
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      解析占位符            +++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Override
 	public String resolvePlaceholders(String text) {
 		if (this.nonStrictHelper == null) {
@@ -210,6 +231,13 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 		return doResolvePlaceholders(text, this.strictHelper);
 	}
 
+	private String doResolvePlaceholders(String text, PropertyPlaceholderHelper helper) {
+		return helper.replacePlaceholders(text, this::getPropertyAsRawString);
+	}
+
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      嵌套解析            +++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	/**
 	 * Resolve placeholders within the given string, deferring to the value of
 	 * {@link #setIgnoreUnresolvableNestedPlaceholders} to determine whether any
@@ -223,19 +251,13 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 	 * @see #setIgnoreUnresolvableNestedPlaceholders
 	 */
 	protected String resolveNestedPlaceholders(String value) {
-		return (this.ignoreUnresolvableNestedPlaceholders ?
-				resolvePlaceholders(value) : resolveRequiredPlaceholders(value));
+		return (this.ignoreUnresolvableNestedPlaceholders ? resolvePlaceholders(value) : resolveRequiredPlaceholders(value));
 	}
 
-	private PropertyPlaceholderHelper createPlaceholderHelper(boolean ignoreUnresolvablePlaceholders) {
-		return new PropertyPlaceholderHelper(this.placeholderPrefix, this.placeholderSuffix,
-				this.valueSeparator, ignoreUnresolvablePlaceholders);
-	}
 
-	private String doResolvePlaceholders(String text, PropertyPlaceholderHelper helper) {
-		return helper.replacePlaceholders(text, this::getPropertyAsRawString);
-	}
-
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      转换服务上场            +++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	/**
 	 * Convert the given value to the specified target type, if necessary.
 	 * @param value the original property value
@@ -254,6 +276,7 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 		if (conversionServiceToUse == null) {
 			// Avoid initialization of shared DefaultConversionService if
 			// no standard type conversion is needed in the first place...
+			// 两个本来就是同一类型就不用转换了
 			if (ClassUtils.isAssignableValue(targetType, value)) {
 				return (T) value;
 			}
@@ -271,5 +294,9 @@ public abstract class AbstractPropertyResolver implements ConfigurablePropertyRe
 	 */
 	@Nullable
 	protected abstract String getPropertyAsRawString(String key);
+
+	private PropertyPlaceholderHelper createPlaceholderHelper(boolean ignoreUnresolvablePlaceholders) {
+		return new PropertyPlaceholderHelper(this.placeholderPrefix, this.placeholderSuffix, this.valueSeparator, ignoreUnresolvablePlaceholders);
+	}
 
 }

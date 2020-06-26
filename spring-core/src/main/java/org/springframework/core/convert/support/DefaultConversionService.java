@@ -119,61 +119,82 @@ public class DefaultConversionService extends GenericConversionService {
 	public static void addCollectionConverters(ConverterRegistry converterRegistry) {
 		ConversionService conversionService = (ConversionService) converterRegistry;
 
+		// 数组转集合
 		converterRegistry.addConverter(new ArrayToCollectionConverter(conversionService));
 		converterRegistry.addConverter(new CollectionToArrayConverter(conversionService));
 
+		// 数组转数组
 		converterRegistry.addConverter(new ArrayToArrayConverter(conversionService));
 		converterRegistry.addConverter(new CollectionToCollectionConverter(conversionService));
 		converterRegistry.addConverter(new MapToMapConverter(conversionService));
 
+		// 数组转字符串
 		converterRegistry.addConverter(new ArrayToStringConverter(conversionService));
 		converterRegistry.addConverter(new StringToArrayConverter(conversionService));
 
+		// 数组转对象 (返回第一个元素)
 		converterRegistry.addConverter(new ArrayToObjectConverter(conversionService));
 		converterRegistry.addConverter(new ObjectToArrayConverter(conversionService));
 
+		// 集合转字符串
 		converterRegistry.addConverter(new CollectionToStringConverter(conversionService));
 		converterRegistry.addConverter(new StringToCollectionConverter(conversionService));
 
+		// 集合转对象
 		converterRegistry.addConverter(new CollectionToObjectConverter(conversionService));
 		converterRegistry.addConverter(new ObjectToCollectionConverter(conversionService));
 
+		// Stream转集合
 		converterRegistry.addConverter(new StreamConverter(conversionService));
 	}
 
+	/**
+	 * 标量转换器
+	 */
 	private static void addScalarConverters(ConverterRegistry converterRegistry) {
 		converterRegistry.addConverterFactory(new NumberToNumberConverterFactory());
 
+		// String 转数字
 		converterRegistry.addConverterFactory(new StringToNumberConverterFactory());
 		converterRegistry.addConverter(Number.class, String.class, new ObjectToStringConverter());
 
+		// String 转字符
 		converterRegistry.addConverter(new StringToCharacterConverter());
 		converterRegistry.addConverter(Character.class, String.class, new ObjectToStringConverter());
 
+		// 数字转字符
 		converterRegistry.addConverter(new NumberToCharacterConverter());
 		converterRegistry.addConverterFactory(new CharacterToNumberFactory());
 
+		// String转Boolean
 		converterRegistry.addConverter(new StringToBooleanConverter());
 		converterRegistry.addConverter(Boolean.class, String.class, new ObjectToStringConverter());
 
+		// 字符串转枚举
 		converterRegistry.addConverterFactory(new StringToEnumConverterFactory());
 		converterRegistry.addConverter(new EnumToStringConverter((ConversionService) converterRegistry));
 
+		// 整数转枚举
 		converterRegistry.addConverterFactory(new IntegerToEnumConverterFactory());
 		converterRegistry.addConverter(new EnumToIntegerConverter((ConversionService) converterRegistry));
 
+		// 字符串转Locale
 		converterRegistry.addConverter(new StringToLocaleConverter());
 		converterRegistry.addConverter(Locale.class, String.class, new ObjectToStringConverter());
 
+		// 字符串转字符集
 		converterRegistry.addConverter(new StringToCharsetConverter());
 		converterRegistry.addConverter(Charset.class, String.class, new ObjectToStringConverter());
 
+		// 字符串转货币
 		converterRegistry.addConverter(new StringToCurrencyConverter());
 		converterRegistry.addConverter(Currency.class, String.class, new ObjectToStringConverter());
 
+		// 字符串转Properties
 		converterRegistry.addConverter(new StringToPropertiesConverter());
 		converterRegistry.addConverter(new PropertiesToStringConverter());
 
+		// 字符串转UUID
 		converterRegistry.addConverter(new StringToUUIDConverter());
 		converterRegistry.addConverter(UUID.class, String.class, new ObjectToStringConverter());
 	}

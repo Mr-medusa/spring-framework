@@ -16,6 +16,10 @@
 
 package org.springframework.core.env;
 
+import org.junit.Test;
+import org.springframework.core.SpringProperties;
+import org.springframework.mock.env.MockPropertySource;
+
 import java.lang.reflect.Field;
 import java.security.AccessControlException;
 import java.security.Permission;
@@ -23,16 +27,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
-import org.junit.Test;
-
-import org.springframework.core.SpringProperties;
-import org.springframework.mock.env.MockPropertySource;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.springframework.core.env.AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME;
-import static org.springframework.core.env.AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME;
-import static org.springframework.core.env.AbstractEnvironment.RESERVED_DEFAULT_PROFILE_NAME;
+import static org.springframework.core.env.AbstractEnvironment.*;
 
 /**
  * Unit tests for {@link StandardEnvironment}.
@@ -51,6 +48,7 @@ public class StandardEnvironmentTests {
 
 	private static final String STRING_PROPERTY_NAME = "stringPropName";
 	private static final String STRING_PROPERTY_VALUE = "stringPropValue";
+
 	private static final Object NON_STRING_PROPERTY_NAME = new Object();
 	private static final Object NON_STRING_PROPERTY_VALUE = new Object();
 
@@ -206,10 +204,14 @@ public class StandardEnvironmentTests {
 		assertThat(env.getActiveProfiles()).contains("p1", "p2");
 	}
 
+	/**
+	 * 默认的profiles可以放到系统属性里面
+	 */
 	@Test
 	public void reservedDefaultProfile() {
 		assertThat(environment.getDefaultProfiles()).isEqualTo(new String[]{RESERVED_DEFAULT_PROFILE_NAME});
 		System.setProperty(DEFAULT_PROFILES_PROPERTY_NAME, "d0");
+		// 可以看到spring只是持有System.getProperties()的引用,并没有重新复制一份
 		assertThat(environment.getDefaultProfiles()).isEqualTo(new String[]{"d0"});
 		environment.setDefaultProfiles("d1", "d2");
 		assertThat(environment.getDefaultProfiles()).isEqualTo(new String[]{"d1","d2"});
@@ -220,8 +222,7 @@ public class StandardEnvironmentTests {
 	public void defaultProfileWithCircularPlaceholder() {
 		System.setProperty(DEFAULT_PROFILES_PROPERTY_NAME, "${spring.profiles.default}");
 		try {
-			assertThatIllegalArgumentException().isThrownBy(() ->
-					environment.getDefaultProfiles());
+			assertThatIllegalArgumentException().isThrownBy(() -> environment.getDefaultProfiles());
 		}
 		finally {
 			System.getProperties().remove(DEFAULT_PROFILES_PROPERTY_NAME);
@@ -243,6 +244,9 @@ public class StandardEnvironmentTests {
 		System.getProperties().remove(ACTIVE_PROFILES_PROPERTY_NAME);
 	}
 
+	/**
+	 * 激活的profiles可以放到系统属性里面
+	 */
 	@Test
 	public void getActiveProfiles_fromSystemProperties_withMultipleProfiles() {
 		System.setProperty(ACTIVE_PROFILES_PROPERTY_NAME, "foo,bar");
@@ -300,13 +304,18 @@ public class StandardEnvironmentTests {
 				environment.acceptsProfiles(""));
 	}
 
+	/**
+	 * 检测有没有激活的profile
+	 */
 	@Test
 	public void acceptsProfiles_activeProfileSetProgrammatically() {
 		assertThat(environment.acceptsProfiles("p1", "p2")).isFalse();
 		environment.setActiveProfiles("p1");
 		assertThat(environment.acceptsProfiles("p1", "p2")).isTrue();
+
 		environment.setActiveProfiles("p2");
 		assertThat(environment.acceptsProfiles("p1", "p2")).isTrue();
+
 		environment.setActiveProfiles("p1", "p2");
 		assertThat(environment.acceptsProfiles("p1", "p2")).isTrue();
 	}
@@ -318,11 +327,15 @@ public class StandardEnvironmentTests {
 		assertThat(environment.acceptsProfiles("p1")).isTrue();
 	}
 
+	/**
+	 * 激活的profile与默认的profile互斥
+	 */
 	@Test
 	public void acceptsProfiles_defaultProfile() {
 		assertThat(environment.acceptsProfiles("pd")).isFalse();
 		environment.setDefaultProfiles("pd");
 		assertThat(environment.acceptsProfiles("pd")).isTrue();
+
 		environment.setActiveProfiles("p1");
 		assertThat(environment.acceptsProfiles("pd")).isFalse();
 		assertThat(environment.acceptsProfiles("p1")).isTrue();
@@ -359,8 +372,7 @@ public class StandardEnvironmentTests {
 			protected void validateProfile(String profile) {
 				super.validateProfile(profile);
 				if (profile.contains("-")) {
-					throw new IllegalArgumentException(
-							"Invalid profile [" + profile + "]: must not contain dash character");
+					throw new IllegalArgumentException("Invalid profile [" + profile + "]: must not contain dash character");
 				}
 			}
 		};
@@ -393,6 +405,9 @@ public class StandardEnvironmentTests {
 		SpringProperties.setProperty("spring.getenv.ignore", null);
 	}
 
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++      管理属性的访问权限            ++++++++++++++++++++++++++++++++++++
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	@Test
 	public void getSystemProperties_withAndWithoutSecurityManager() {
 		System.setProperty(ALLOWED_PROPERTY_NAME, ALLOWED_PROPERTY_VALUE);

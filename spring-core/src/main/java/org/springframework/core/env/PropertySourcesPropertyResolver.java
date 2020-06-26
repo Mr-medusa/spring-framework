@@ -62,12 +62,18 @@ public class PropertySourcesPropertyResolver extends AbstractPropertyResolver {
 		return getProperty(key, String.class, true);
 	}
 
+	/**
+	 * 这个方法 需要解析占位符
+	 */
 	@Override
 	@Nullable
 	public <T> T getProperty(String key, Class<T> targetValueType) {
 		return getProperty(key, targetValueType, true);
 	}
 
+	/**
+	 * 这个方法 不 需要解析占位符
+	 */
 	@Override
 	@Nullable
 	protected String getPropertyAsRawString(String key) {
@@ -79,15 +85,23 @@ public class PropertySourcesPropertyResolver extends AbstractPropertyResolver {
 		if (this.propertySources != null) {
 			for (PropertySource<?> propertySource : this.propertySources) {
 				if (logger.isTraceEnabled()) {
-					logger.trace("Searching for key '" + key + "' in PropertySource '" +
-							propertySource.getName() + "'");
+					logger.trace("Searching for key '" + key + "' in PropertySource '" + propertySource.getName() + "'");
 				}
+				/**
+				 * 注意这里使用的是二层的MapPropertySource
+				 */
 				Object value = propertySource.getProperty(key);
 				if (value != null) {
+					/**
+					 * 在这里解析占位符
+					 */
 					if (resolveNestedPlaceholders && value instanceof String) {
 						value = resolveNestedPlaceholders((String) value);
 					}
 					logKeyFound(key, propertySource, value);
+					/**
+					 * 类型转换
+					 */
 					return convertValueIfNecessary(value, targetValueType);
 				}
 			}
