@@ -35,6 +35,7 @@ public class SimpleAliasRegistryTests {
 		assertThat(registry.hasAlias("test", "testAlias")).isTrue();
 		assertThat(registry.hasAlias("test", "testAlias2")).isTrue();
 		assertThat(registry.hasAlias("test", "testAlias3")).isTrue();
+
 		assertThat(registry.canonicalName("testAlias")).isSameAs("test");
 		assertThat(registry.canonicalName("testAlias2")).isSameAs("test");
 		assertThat(registry.canonicalName("testAlias3")).isSameAs("test");
@@ -60,4 +61,15 @@ public class SimpleAliasRegistryTests {
 		assertThat(registry.hasAlias("real_name", "alias_c")).isTrue();
 	}
 
+
+	@Test
+	public void circleAlias(){
+		SimpleAliasRegistry registry = new SimpleAliasRegistry();
+		registry.registerAlias("B","A");
+		registry.registerAlias("C","B");
+		registry.registerAlias("D","C");
+		registry.registerAlias("F","D");
+		registry.registerAlias("G","F");
+		System.out.println(registry.canonicalName("A"));
+	}
 }

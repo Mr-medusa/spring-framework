@@ -16,9 +16,10 @@
 
 package org.springframework.beans.factory.support;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
-
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.tests.sample.beans.DerivedTestBean;
 import org.springframework.tests.sample.beans.TestBean;
@@ -101,4 +102,125 @@ public class DefaultSingletonBeanRegistryTests {
 		assertThat(beanRegistry.isDependent("c", "c")).isTrue();
 	}
 
+	@Test
+	public void destroyDependentBean() {
+		DefaultSingletonBeanRegistry beanRegistry = new DefaultSingletonBeanRegistry();
+		beanRegistry.registerDependentBean("A", "B");
+		beanRegistry.registerDependentBean("B", "C");
+		beanRegistry.registerDependentBean("C", "D");
+
+		beanRegistry.registerDependentBean("C", "F");
+		beanRegistry.registerDependentBean("C", "G");
+		beanRegistry.registerDependentBean("E", "G");            // D->F->G|C无依赖|->C->A->B->E
+
+		// dependenciesForBeanMap
+		Assertions.assertThat(beanRegistry.getDependenciesForBean("C")).isEqualTo(new String[]{"B"});
+		Assertions.assertThat(beanRegistry.getDependenciesForBean("D")).isEqualTo(new String[]{"C"});
+
+		// dependentBeanMap
+		Assertions.assertThat(beanRegistry.getDependentBeans("C")).isEqualTo(new String[]{"D", "F", "G"});
+
+
+		addDisposableBean(beanRegistry, "G", "F", "E", "D", "C", "B", "A");
+		beanRegistry.destroySingletons();
+	}
+
+	@Test
+	public void destroyCircleDependentBean() {
+		DefaultSingletonBeanRegistry beanRegistry = new DefaultSingletonBeanRegistry();
+		beanRegistry.registerDependentBean("A", "B");
+		beanRegistry.registerDependentBean("B", "C");
+		beanRegistry.registerDependentBean("C", "D");
+		beanRegistry.registerDependentBean("D", "A");
+
+
+		addDisposableBean(beanRegistry, "D", "C", "B", "A");
+		System.out.println("containedBeanMap = " + beanRegistry.getContainedBeanMap());
+		System.out.println("dependentBeanMap = " + beanRegistry.getDependentBeanMap());
+		System.out.println("dependenciesForBeanMap = " + beanRegistry.getDependenciesForBeanMap());
+		beanRegistry.destroySingletons();
+	}
+
+	@Test
+	public void destroyDependentBeanWithContained() {
+		DefaultSingletonBeanRegistry beanRegistry = new DefaultSingletonBeanRegistry();
+		beanRegistry.registerContainedBean("A", "B");
+		beanRegistry.registerContainedBean("B", "C");
+		beanRegistry.registerContainedBean("C", "D");
+		beanRegistry.registerContainedBean("D", "E");
+		beanRegistry.registerContainedBean("F", "E");
+
+
+		addDisposableBean(beanRegistry, "F", "E", "D", "C", "B", "A");
+		System.out.println("containedBeanMap = " + beanRegistry.getContainedBeanMap());
+		System.out.println("dependentBeanMap = " + beanRegistry.getDependentBeanMap());
+		System.out.println("dependenciesForBeanMap = " + beanRegistry.getDependenciesForBeanMap());
+		beanRegistry.destroySingletons();
+	}
+
+	public void addDisposableBean(DefaultSingletonBeanRegistry beanRegistry, String... beanName) {
+		for (String name : beanName) {
+			beanRegistry.registerDisposableBean(name, new DisposableBeanImpl(name, beanRegistry));
+		}
+	}
+
+	private static class DisposableBeanImpl implements DisposableBean {
+		private String name;
+		private DefaultSingletonBeanRegistry registry;
+
+		public DisposableBeanImpl(String name, DefaultSingletonBeanRegistry registry) {
+			this.name = name;
+			this.registry = registry;
+		}
+
+		@Override
+		public void destroy() throws Exception {
+			System.out.println("----------" + name + "----------");
+			System.out.println("containedBeanMap = " + this.registry.getContainedBeanMap());
+			System.out.println("dependentBeanMap = " + this.registry.getDependentBeanMap());
+			System.out.println("dependenciesForBeanMap = " + this.registry.getDependenciesForBeanMap());
+		}
+	}
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

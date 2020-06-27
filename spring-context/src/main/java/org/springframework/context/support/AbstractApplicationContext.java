@@ -95,8 +95,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @see org.springframework.context.ApplicationListener
  * @see org.springframework.context.MessageSource
  */
-public abstract class AbstractApplicationContext extends DefaultResourceLoader
-		implements ConfigurableApplicationContext {
+public abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext {
 
 	/**
 	 * Name of the MessageSource bean in the factory.
@@ -142,9 +141,6 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Nullable
 	private ApplicationContext parent;
 
-	/**
-	 * MY_TODO: 1_0
-	 */
 	/** Environment used by this context. */
 	@Nullable
 	private ConfigurableEnvironment environment;
@@ -198,6 +194,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	/**
 	 * Create a new AbstractApplicationContext with no parent.
 	 */
+	// PathMatchingResourcePatternResolver
 	public AbstractApplicationContext() {
 		this.resourcePatternResolver = getResourcePatternResolver();
 	}
@@ -288,6 +285,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Override
 	public ConfigurableEnvironment getEnvironment() {
 		if (this.environment == null) {
+			// StandardEnvironment
 			this.environment = createEnvironment();
 		}
 		return this.environment;
@@ -303,12 +301,16 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	}
 
 	/**
+	 * MY_TODO 1.0
+	 */
+	/**
 	 * Return this context's internal bean factory as AutowireCapableBeanFactory,
 	 * if already available.
 	 * @see #getBeanFactory()
 	 */
 	@Override
 	public AutowireCapableBeanFactory getAutowireCapableBeanFactory() throws IllegalStateException {
+		// DefaultListableBeanFactory
 		return getBeanFactory();
 	}
 
