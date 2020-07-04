@@ -205,6 +205,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 	 */
 	public AbstractApplicationContext(@Nullable ApplicationContext parent) {
 		this();
+		// 合并父级的Environment
 		setParent(parent);
 	}
 
