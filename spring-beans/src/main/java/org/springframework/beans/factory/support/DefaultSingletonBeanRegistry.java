@@ -511,7 +511,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				alreadySeen = new HashSet<>();
 			}
 			alreadySeen.add(beanName);
-			if (isDependent(transitiveDependency, dependentBeanName, alreadySeen)) {        // beanName所依赖的其中一个Bean是否依赖与这个dependentBeanName
+			// beanName所依赖的其中一个Bean是否依赖与这个dependentBeanName
+			if (isDependent(transitiveDependency, dependentBeanName, alreadySeen)) {
 				return true;
 			}
 		}

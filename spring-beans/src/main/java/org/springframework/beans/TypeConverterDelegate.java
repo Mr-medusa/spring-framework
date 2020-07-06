@@ -16,19 +16,8 @@
 
 package org.springframework.beans;
 
-import java.beans.PropertyEditor;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.core.convert.ConversionService;
@@ -38,6 +27,16 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.NumberUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import java.beans.PropertyEditor;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Internal helper class for converting property values to target types.
@@ -120,6 +119,32 @@ class TypeConverterDelegate {
 
 		ConversionFailedException conversionAttemptEx = null;
 
+		/*
+		 * 先看看能不能从ConversionService进行转换
+		 * 		byte[] -> ByteBuffer
+		 * 		String -> TimeZone
+		 * 		Object -> Object
+		 *
+		 * 		数组 <-> 集合
+		 * 		数组 <-> 数组
+		 * 		数组 <-> 字符串
+		 * 		数组 <-> 对象 (返回第一个元素)
+		 * 		集合 <-> 字符串
+		 * 		集合 <-> 对象
+		 * 		Stream <-> 集合
+		 *
+		 * 		String  <-> 数字
+		 * 		String  <-> 字符
+		 * 		数字 <-> 字符
+		 * 		String <-> Boolean
+		 * 		字符串 <-> 枚举
+		 * 		整数 <-> 枚举
+		 * 		字符串 <-> Locale
+		 * 		字符串 <-> 字符集
+		 * 		字符串 <-> 货币
+		 * 		字符串 <-> Properties
+		 * 		字符串 <-> UUID
+		 */
 		// No custom editor but custom ConversionService specified?
 		ConversionService conversionService = this.propertyEditorRegistry.getConversionService();
 		if (editor == null && conversionService != null && newValue != null && typeDescriptor != null) {
@@ -138,13 +163,22 @@ class TypeConverterDelegate {
 		Object convertedValue = newValue;
 
 		// Value not of required type?
+		/*
+		 * 转换的值不是所需类型
+		 */
 		if (editor != null || (requiredType != null && !ClassUtils.isAssignableValue(requiredType, convertedValue))) {
-			if (typeDescriptor != null && requiredType != null && Collection.class.isAssignableFrom(requiredType) &&
-					convertedValue instanceof String) {
+			// 转换的值是字符串 且 所需类型是集合
+			// 则构造成字符串数组
+			if (typeDescriptor != null && requiredType != null && Collection.class.isAssignableFrom(requiredType)
+					&& convertedValue instanceof String) {
+
 				TypeDescriptor elementTypeDesc = typeDescriptor.getElementTypeDescriptor();
 				if (elementTypeDesc != null) {
+					// 确定集合元素类型
 					Class<?> elementType = elementTypeDesc.getType();
+					// 是类或者是枚举都可以
 					if (Class.class == elementType || Enum.class.isAssignableFrom(elementType)) {
+						// 将转换的值打成字符串数组
 						convertedValue = StringUtils.commaDelimitedListToStringArray((String) convertedValue);
 					}
 				}
@@ -157,13 +191,19 @@ class TypeConverterDelegate {
 
 		boolean standardConversion = false;
 
+		/*
+		 * 根据被转换后的值做一些调整
+		 */
 		if (requiredType != null) {
 			// Try to apply some standard type conversion rules if appropriate.
 
 			if (convertedValue != null) {
+				//------------------------------------------------------------------------------------
+				// 所需类型是Object直接返回被转换的值
 				if (Object.class == requiredType) {
 					return (T) convertedValue;
 				}
+				// 转换成数组 且 元素是枚举类型
 				else if (requiredType.isArray()) {
 					// Array required -> apply appropriate conversion of elements.
 					if (convertedValue instanceof String && Enum.class.isAssignableFrom(requiredType.getComponentType())) {
@@ -171,22 +211,33 @@ class TypeConverterDelegate {
 					}
 					return (T) convertToTypedArray(convertedValue, propertyName, requiredType.getComponentType());
 				}
+				//------------------------------------------------------------------------------------
+
+
+				// 转换成集合
 				else if (convertedValue instanceof Collection) {
 					// Convert elements to target type, if determined.
 					convertedValue = convertToTypedCollection(
 							(Collection<?>) convertedValue, propertyName, requiredType, typeDescriptor);
 					standardConversion = true;
 				}
+				// 转换成Map
 				else if (convertedValue instanceof Map) {
 					// Convert keys and values to respective target type, if determined.
 					convertedValue = convertToTypedMap(
 							(Map<?, ?>) convertedValue, propertyName, requiredType, typeDescriptor);
 					standardConversion = true;
 				}
+
+				// ----------------------------------------------------------------------------
+
+				// 若转换后的值是数组
 				if (convertedValue.getClass().isArray() && Array.getLength(convertedValue) == 1) {
 					convertedValue = Array.get(convertedValue, 0);
 					standardConversion = true;
 				}
+
+				// 所需类型是字符串 且 还是原始类型或包装类型 直接返回toString
 				if (String.class == requiredType && ClassUtils.isPrimitiveOrWrapper(convertedValue.getClass())) {
 					// We can stringify any primitive value...
 					return (T) convertedValue.toString();
@@ -214,9 +265,11 @@ class TypeConverterDelegate {
 						// It's an empty enum identifier: reset the enum value to null.
 						return null;
 					}
+					// 尝试转换成枚举
 					convertedValue = attemptToConvertStringToEnum(requiredType, trimmedValue, convertedValue);
 					standardConversion = true;
 				}
+				// 转换成数字
 				else if (convertedValue instanceof Number && Number.class.isAssignableFrom(requiredType)) {
 					convertedValue = NumberUtils.convertNumberToTargetClass(
 							(Number) convertedValue, (Class<Number>) requiredType);
@@ -230,6 +283,7 @@ class TypeConverterDelegate {
 				}
 			}
 
+			// 若被转换后的值不是所需类型再试试conversionService能不能转换
 			if (!ClassUtils.isAssignableValue(requiredType, convertedValue)) {
 				if (conversionAttemptEx != null) {
 					// Original exception from former ConversionService call above...
@@ -380,8 +434,12 @@ class TypeConverterDelegate {
 			}
 		}
 
+		// 获得被转换后的值了
 		Object returnValue = convertedValue;
 
+		/*
+		 * 若是转换后的值时字符串数组且所需类型又不是数组 则转换成逗号分隔的String
+		 */
 		if (requiredType != null && !requiredType.isArray() && convertedValue instanceof String[]) {
 			// Convert String array to a comma-separated String.
 			// Only applies if no PropertyEditor converted the String array before.
@@ -392,6 +450,9 @@ class TypeConverterDelegate {
 			convertedValue = StringUtils.arrayToCommaDelimitedString((String[]) convertedValue);
 		}
 
+		/*
+		 * 若是字符串则调用编辑器的setAsText进行转换
+		 */
 		if (convertedValue instanceof String) {
 			if (editor != null) {
 				// Use PropertyEditor's setAsText in case of a String value.
@@ -406,6 +467,9 @@ class TypeConverterDelegate {
 			}
 		}
 
+		/*
+		 * 主要是看一看所需类型是不是数组,若不是把convertedValue构造成字符串在进行转换
+		 */
 		return returnValue;
 	}
 
@@ -437,6 +501,7 @@ class TypeConverterDelegate {
 			Object result = Array.newInstance(componentType, coll.size());
 			int i = 0;
 			for (Iterator<?> it = coll.iterator(); it.hasNext(); i++) {
+				// 把元素转换成对应的类型
 				Object value = convertIfNecessary(
 						buildIndexedPropertyName(propertyName, i), null, it.next(), componentType);
 				Array.set(result, i, value);
@@ -444,6 +509,9 @@ class TypeConverterDelegate {
 			return result;
 		}
 		else if (input.getClass().isArray()) {
+			/*
+			 * 连元素都要对于所需类型的元素
+			 */
 			// Convert array elements, if necessary.
 			if (componentType.equals(input.getClass().getComponentType()) &&
 					!this.propertyEditorRegistry.hasCustomEditorForElement(componentType, propertyName)) {
@@ -452,6 +520,7 @@ class TypeConverterDelegate {
 			int arrayLength = Array.getLength(input);
 			Object result = Array.newInstance(componentType, arrayLength);
 			for (int i = 0; i < arrayLength; i++) {
+				// 把元素类型转换成对应的componentType
 				Object value = convertIfNecessary(
 						buildIndexedPropertyName(propertyName, i), null, Array.get(input, i), componentType);
 				Array.set(result, i, value);
