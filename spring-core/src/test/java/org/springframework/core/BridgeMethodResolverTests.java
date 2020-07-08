@@ -16,21 +16,17 @@
 
 package org.springframework.core;
 
+import org.junit.Test;
+import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
+
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
-
-import org.junit.Test;
-
-import org.springframework.util.ReflectionUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,6 +48,44 @@ public class BridgeMethodResolverTests {
 		return null;
 	}
 
+
+	public static class MyClass{
+			public MyClass() {
+		}
+
+		@Deprecated
+		public <T extends String> void dddddddddd(T s) {
+
+		}
+	}
+	/**
+	 * 合成的方法拿不到注解
+	 */
+	@Test
+	public void testSyntheticMethod() {
+		Enhancer enhancer = new Enhancer();
+		enhancer.setSuperclass(MyClass.class);
+		enhancer.setCallbackType(MethodInterceptor.class);
+		enhancer.setCallback((MethodInterceptor) (o, method, objects, methodProxy) -> methodProxy.invoke(o, objects));
+		MyClass o = (MyClass) enhancer.create();
+		Method fuck = ClassUtils.getMethod(o.getClass(), "dddddddddd",String.class);
+		System.out.println(fuck);
+		System.out.println(fuck.getName());
+		System.out.println(fuck.getDeclaringClass());
+		System.out.println(Arrays.toString(fuck.getAnnotations()));
+		System.out.println();
+
+		 fuck = ClassUtils.getMethod(MyClass.class, "dddddddddd",String.class);
+		System.out.println(fuck);
+		System.out.println(fuck.getName());
+		System.out.println(fuck.getDeclaringClass());
+		System.out.println(Arrays.toString(fuck.getAnnotations()));
+		System.out.println();
+	}
+
+	private static class MySerializable implements Serializable {
+
+	}
 
 	@Test
 	public void testFindBridgedMethod() throws Exception {
@@ -75,17 +109,24 @@ public class BridgeMethodResolverTests {
 		assertThat(BridgeMethodResolver.findBridgedMethod(bridged)).as("Incorrect bridged method returned").isEqualTo(unbridged);
 	}
 
+	/**
+	 * 找到候选方法
+	 */
 	@Test
 	public void testFindBridgedMethodInHierarchy() throws Exception {
 		Method bridgeMethod = DateAdder.class.getMethod("add", Object.class);
 		assertThat(bridgeMethod.isBridge()).isTrue();
 		Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(bridgeMethod);
 		assertThat(bridgedMethod.isBridge()).isFalse();
+
 		assertThat(bridgedMethod.getName()).isEqualTo("add");
 		assertThat(bridgedMethod.getParameterCount()).isEqualTo(1);
 		assertThat(bridgedMethod.getParameterTypes()[0]).isEqualTo(Date.class);
 	}
 
+	/**
+	 * 桥接方法与被桥接方法间比较
+	 */
 	@Test
 	public void testIsBridgeMethodFor() throws Exception {
 		Method bridged = MyBar.class.getDeclaredMethod("someMethod", String.class, Object.class);
@@ -160,8 +201,7 @@ public class BridgeMethodResolverTests {
 			if ("getFor".equals(method.getName()) && !method.getParameterTypes()[0].equals(Integer.class)) {
 				if (method.getReturnType().equals(Object.class)) {
 					bridgeMethod = method;
-				}
-				else {
+				} else {
 					bridgedMethod = method;
 				}
 			}
@@ -252,7 +292,7 @@ public class BridgeMethodResolverTests {
 		Method bridgedMethod = MegaMessageProducerImpl.class.getDeclaredMethod("receive", MegaMessageEvent.class);
 		assertThat(bridgedMethod.isBridge()).isFalse();
 
-		Method bridgeMethod  = MegaMessageProducerImpl.class.getDeclaredMethod("receive", MegaEvent.class);
+		Method bridgeMethod = MegaMessageProducerImpl.class.getDeclaredMethod("receive", MegaEvent.class);
 		assertThat(bridgeMethod.isBridge()).isTrue();
 
 		assertThat(BridgeMethodResolver.findBridgedMethod(bridgeMethod)).isEqualTo(bridgedMethod);
@@ -315,7 +355,7 @@ public class BridgeMethodResolverTests {
 	}
 
 	private void doTestHierarchyResolution(Class<?> clazz) throws Exception {
-		for (Method method : clazz.getDeclaredMethods()){
+		for (Method method : clazz.getDeclaredMethods()) {
 			Method bridged = BridgeMethodResolver.findBridgedMethod(method);
 			Method expected = clazz.getMethod("test", FooEntity.class);
 			assertThat(bridged).isEqualTo(expected);
@@ -343,6 +383,7 @@ public class BridgeMethodResolverTests {
 		@Override
 		public void someVarargMethod(String theArg, Object... otherArgs) {
 		}
+
 	}
 
 
@@ -1140,7 +1181,7 @@ public class BridgeMethodResolverTests {
 	}
 
 
-	private static class Other<S,E> {
+	private static class Other<S, E> {
 	}
 
 
